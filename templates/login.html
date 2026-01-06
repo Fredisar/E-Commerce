@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Connexion - Nexus Shop{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card product-card">
+                <div class="card-body p-4">
+                    <h2 class="text-center mb-4 gradient-text">
+                        <i class="fas fa-sign-in-alt me-2"></i>Connexion
+                    </h2>
+                    
+                    {% if form.errors %}
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Nom d'utilisateur ou mot de passe incorrect.
+                    </div>
+                    {% endif %}
+                    
+                    {% if next %}
+                        {% if user.is_authenticated %}
+                        <div class="alert alert-warning">
+                            Votre compte n'a pas accès à cette page.
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Connectez-vous pour accéder à cette page.
+                        </div>
+                        {% endif %}
+                    {% endif %}
+                    
+                    <form method="post" action="{% url 'login' %}">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="id_username" class="form-label">
+                                <i class="fas fa-user me-1"></i>Nom d'utilisateur
+                            </label>
+                            <input type="text" name="username" class="form-control" id="id_username" 
+                                   placeholder="Entrez votre nom d'utilisateur" required autofocus>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="id_password" class="form-label">
+                                <i class="fas fa-lock me-1"></i>Mot de passe
+                            </label>
+                            <input type="password" name="password" class="form-control" id="id_password" 
+                                   placeholder="Entrez votre mot de passe" required>
+                        </div>
+                        
+                        <input type="hidden" name="next" value="{{ next }}">
+                        
+                        <div class="d-grid mb-3">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-sign-in-alt me-2"></i>Se connecter
+                            </button>
+                        </div>
+                        
+                        <div class="text-center mb-3">
+                            <a href="{% url 'password_reset' %}" class="text-decoration-none text-info">
+                                <i class="fas fa-key me-1"></i>Mot de passe oublié ?
+                            </a>
+                        </div>
+                    </form>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="text-center">
+                        <p class="mb-2">Vous n'avez pas de compte ?</p>
+                        <a href="{% url 'register' %}" class="btn btn-outline-success">
+                            <i class="fas fa-user-plus me-1"></i>Créer un compte
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,251 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Mon Profil - Nexus Shop{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-lg-3 mb-4">
+            <div class="card product-card">
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <div class="position-relative d-inline-block">
+                            {% if user.profile.profile_picture %}
+                            <img src="{{ user.profile.profile_picture.url }}" 
+                                 class="rounded-circle border border-primary" 
+                                 width="100" height="100" alt="Photo de profil">
+                            {% else %}
+                            <div class="rounded-circle border border-primary d-flex align-items-center justify-content-center" 
+                                 style="width: 100px; height: 100px; background: linear-gradient(135deg, #00b4d8, #7209b7);">
+                                <i class="fas fa-user-astronaut fa-3x text-light"></i>
+                            </div>
+                            {% endif %}
+                            <button class="btn btn-sm btn-primary position-absolute bottom-0 end-0 rounded-circle">
+                                <i class="fas fa-camera"></i>
+                            </button>
+                        </div>
+                        <h5 class="mt-3 mb-0">{{ user.get_full_name|default:user.username }}</h5>
+                        <p class="text-light-50 small">Membre depuis {{ user.date_joined|date:"d/m/Y" }}</p>
+                    </div>
+                    
+                    <div class="list-group list-group-flush">
+                        <a href="{% url 'profile' %}" class="list-group-item list-group-item-action bg-dark text-light active">
+                            <i class="fas fa-user-circle me-2"></i>Profil
+                        </a>
+                        <a href="{% url 'user_orders' %}" class="list-group-item list-group-item-action bg-dark text-light">
+                            <i class="fas fa-shopping-bag me-2"></i>Mes commandes
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action bg-dark text-light">
+                            <i class="fas fa-heart me-2"></i>Mes favoris
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action bg-dark text-light">
+                            <i class="fas fa-map-marker-alt me-2"></i>Adresses
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action bg-dark text-light">
+                            <i class="fas fa-credit-card me-2"></i>Moyens de paiement
+                        </a>
+                        <a href="{% url 'logout' %}" class="list-group-item list-group-item-action bg-dark text-light">
+                            <i class="fas fa-sign-out-alt me-2"></i>Déconnexion
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Statistiques -->
+            <div class="card product-card mt-3">
+                <div class="card-body">
+                    <h6 class="card-title mb-3">Statistiques</h6>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-light-50">Commandes</span>
+                        <span class="text-primary">{{ orders.count|default:"0" }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-light-50">Dépenses totales</span>
+                        <span class="text-primary">€{{ total_spent|default:"0" }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-light-50">Membre depuis</span>
+                        <span class="text-primary">{{ user.date_joined|date:"m/Y" }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Contenu principal -->
+        <div class="col-lg-9">
+            <!-- Informations personnelles -->
+            <div class="card product-card mb-4">
+                <div class="card-header bg-transparent border-primary">
+                    <h4 class="mb-0 gradient-text">
+                        <i class="fas fa-user-edit me-2"></i>Informations personnelles
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Nom d'utilisateur</label>
+                                <input type="text" class="form-control bg-dark" value="{{ user.username }}" readonly>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control bg-dark" value="{{ user.email }}" readonly>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Prénom</label>
+                                <input type="text" name="first_name" class="form-control" value="{{ user.first_name }}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Nom</label>
+                                <input type="text" name="last_name" class="form-control" value="{{ user.last_name }}">
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Téléphone</label>
+                                <input type="tel" name="phone" class="form-control" value="{{ user.profile.phone|default:'' }}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Date de naissance</label>
+                                <input type="date" name="date_of_birth" class="form-control" value="{{ user.profile.date_of_birth|date:'Y-m-d' }}">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Photo de profil</label>
+                            <input type="file" name="profile_picture" class="form-control" accept="image/*">
+                        </div>
+                        
+                        <div class="mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="newsletter_subscription" 
+                                       id="newsletter" {% if user.profile.newsletter_subscription %}checked{% endif %}>
+                                <label class="form-check-label" for="newsletter">
+                                    Je souhaite recevoir les newsletters et offres promotionnelles
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'password_reset' %}" class="btn btn-outline-info">
+                                <i class="fas fa-key me-2"></i>Changer le mot de passe
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Enregistrer les modifications
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Adresses -->
+            <div class="card product-card mb-4">
+                <div class="card-header bg-transparent border-primary">
+                    <h4 class="mb-0 gradient-text">
+                        <i class="fas fa-map-marker-alt me-2"></i>Adresses
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <h6>Adresse de livraison</h6>
+                            {% if user.profile.address %}
+                            <p class="text-light-50">{{ user.profile.address|linebreaks }}</p>
+                            <p class="text-light-50">
+                                {{ user.profile.postal_code }} {{ user.profile.city }}<br>
+                                {{ user.profile.country }}
+                            </p>
+                            {% else %}
+                            <p class="text-light-50">Aucune adresse enregistrée</p>
+                            {% endif %}
+                            <button class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-edit me-1"></i>Modifier
+                            </button>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h6>Adresse de facturation</h6>
+                            <p class="text-light-50">
+                                {% if user.profile.address %}
+                                Même que l'adresse de livraison
+                                {% else %}
+                                Aucune adresse enregistrée
+                                {% endif %}
+                            </p>
+                            <button class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-edit me-1"></i>Modifier
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Dernières commandes -->
+            <div class="card product-card">
+                <div class="card-header bg-transparent border-primary">
+                    <h4 class="mb-0 gradient-text">
+                        <i class="fas fa-history me-2"></i>Dernières commandes
+                    </h4>
+                </div>
+                <div class="card-body">
+                    {% if orders %}
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Commande #</th>
+                                    <th>Date</th>
+                                    <th>Statut</th>
+                                    <th>Total</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in orders|slice:":5" %}
+                                <tr>
+                                    <td>{{ order.order_number|default:order.id }}</td>
+                                    <td>{{ order.created_at|date:"d/m/Y" }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if order.status == 'delivered' %}success{% elif order.status == 'cancelled' %}danger{% else %}warning{% endif %}">
+                                            {{ order.get_status_display|default:"En cours" }}
+                                        </span>
+                                    </td>
+                                    <td class="text-primary">€{{ order.total_amount|default:"0" }}</td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-outline-info">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-end">
+                        <a href="{% url 'user_orders' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-list me-1"></i>Voir toutes les commandes
+                        </a>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-shopping-bag fa-3x text-muted mb-3"></i>
+                        <h5>Aucune commande</h5>
+                        <p class="text-light-50">Vous n'avez pas encore passé de commande.</p>
+                        <a href="{% url 'product_list' %}" class="btn btn-primary">
+                            <i class="fas fa-shopping-cart me-2"></i>Faire des achats
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

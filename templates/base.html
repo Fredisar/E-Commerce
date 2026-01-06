@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Nexus Shop - Boutique en ligne futuriste{% endblock %}</title>
+    
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts (Futuriste) -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Exo+2:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- CSS Personnalisé -->
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="bg-dark text-light">
+    <!-- Navbar Futuriste -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-primary">
+        <div class="container">
+            <a class="navbar-brand brand-futuristic" href="{% url 'home' %}">
+                <i class="fas fa-atom me-2"></i>
+                <span class="gradient-text">NEXUS SHOP</span>
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'home' %}">
+                            <i class="fas fa-home me-1"></i> Accueil
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-boxes me-1"></i> Catégories
+                        </a>
+                        <ul class="dropdown-menu bg-dark">
+                            {% for category in categories %}
+                            <li>
+                                <a class="dropdown-item text-light" href="{% url 'product_list' category.slug %}">
+                                    {{ category.name }}
+                                </a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'search_view' %}">
+                            <i class="fas fa-search me-1"></i> Recherche avancée
+                        </a>
+                    </li>
+                </ul>
+                
+                <div class="d-flex align-items-center">
+                    <!-- Barre de recherche -->
+                    <form class="d-none d-lg-flex me-3 search-form" action="{% url 'product_list' %}" method="get">
+                        <div class="input-group">
+                            <input type="text" class="form-control bg-dark border-primary text-light" 
+                                   name="q" placeholder="Rechercher..." aria-label="Search">
+                            <button class="btn btn-outline-primary" type="submit">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <!-- Panier -->
+                    <a href="{% url 'cart' %}" class="btn btn-outline-primary position-relative me-3">
+                        <i class="fas fa-shopping-cart"></i>
+                        {% if cart_item_count > 0 %}
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                            {{ cart_item_count }}
+                        </span>
+                        {% endif %}
+                    </a>
+                    
+                    <!-- Compte utilisateur -->
+                    {% if user.is_authenticated %}
+                    <div class="dropdown">
+                        <a href="#" class="btn btn-outline-info dropdown-toggle" role="button" 
+                           data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-astronaut me-1"></i> {{ user.username }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end bg-dark">
+                            <li>
+                                <a class="dropdown-item text-light" href="{% url 'profile' %}">
+                                    <i class="fas fa-user-circle me-2"></i> Profil
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item text-light" href="#">
+                                    <i class="fas fa-history me-2"></i> Commandes
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider bg-primary"></li>
+                            <li>
+                                <a class="dropdown-item text-light" href="{% url 'logout' %}">
+                                    <i class="fas fa-sign-out-alt me-2"></i> Déconnexion
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    {% else %}
+                    <div class="btn-group">
+                        <a href="{% url 'login' %}" class="btn btn-outline-success me-2">
+                            <i class="fas fa-sign-in-alt me-1"></i> Connexion
+                        </a>
+                        <a href="{% url 'register' %}" class="btn btn-primary">
+                            <i class="fas fa-user-plus me-1"></i> Inscription
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Messages -->
+    {% if messages %}
+    <div class="container mt-3">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <!-- Contenu principal -->
+    <main class="container py-4">
+        {% block content %}
+        {% endblock %}
+    </main>
+    
+    <!-- Footer -->
+    <footer class="bg-dark border-top border-primary mt-5 py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <h5 class="gradient-text mb-3"><i class="fas fa-atom me-2"></i>NEXUS SHOP</h5>
+                    <p class="text-light-50">
+                        Boutique en ligne futuriste proposant les dernières innovations technologiques.
+                        Paiement sécurisé et livraison rapide.
+                    </p>
+                </div>
+                
+                <div class="col-md-2 mb-3">
+                    <h6 class="text-primary">Navigation</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="{% url 'home' %}" class="text-light-50 text-decoration-none">Accueil</a></li>
+                        <li><a href="#" class="text-light-50 text-decoration-none">Nouveautés</a></li>
+                        <li><a href="#" class="text-light-50 text-decoration-none">Promotions</a></li>
+                        <li><a href="#" class="text-light-50 text-decoration-none">Contact</a></li>
+                    </ul>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <h6 class="text-primary">Informations</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="text-light-50 text-decoration-none">Livraison</a></li>
+                        <li><a href="#" class="text-light-50 text-decoration-none">Paiement sécurisé</a></li>
+                        <li><a href="#" class="text-light-50 text-decoration-none">Retours</a></li>
+                        <li><a href="#" class="text-light-50 text-decoration-none">Mentions légales</a></li>
+                    </ul>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <h6 class="text-primary">Contact</h6>
+                    <p class="text-light-50">
+                        <i class="fas fa-envelope me-2"></i> contact@nexus-shop.com<br>
+                        <i class="fas fa-phone me-2"></i> +33 1 23 45 67 89<br>
+                        <i class="fas fa-clock me-2"></i> 24h/24 7j/7
+                    </p>
+                </div>
+            </div>
+            
+            <hr class="bg-primary my-4">
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="text-light-50 mb-0">
+                        &copy; 2024 Nexus Shop. Tous droits réservés.
+                    </p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <a href="#" class="text-light-50 me-3"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#" class="text-light-50 me-3"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="text-light-50 me-3"><i class="fab fa-instagram"></i></a>
+                    <a href="#" class="text-light-50"><i class="fab fa-github"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    {% load static %}
+    <script src="{% static 'js/main.js' %}"></script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
