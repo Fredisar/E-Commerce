@@ -1,0 +1,621 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ product.name }} - Nexus Shop{% endblock %}
+
+{% block extra_css %}
+<style>
+.product-gallery {
+    border-radius: 10px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.main-image {
+    width: 100%;
+    height: 400px;
+    object-fit: contain;
+    background: #1a1a1a;
+}
+
+.thumbnail-container {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+}
+
+.thumbnail {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 5px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.3s;
+}
+
+.thumbnail:hover,
+.thumbnail.active {
+    border-color: #667eea;
+}
+
+.product-info-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 25px;
+}
+
+.discount-badge-large {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+    color: white;
+    padding: 8px 15px;
+    border-radius: 25px;
+    font-size: 14px;
+    font-weight: bold;
+    display: inline-block;
+}
+
+.price-section .original-price {
+    font-size: 1.5rem;
+    color: #aaa;
+    text-decoration: line-through;
+}
+
+.price-section .final-price {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #ff6b6b;
+}
+
+.price-section .normal-price {
+    font-size: 2rem;
+    font-weight: bold;
+    color: white;
+}
+
+.stock-status {
+    padding: 8px 15px;
+    border-radius: 5px;
+    font-weight: 500;
+}
+
+.stock-in {
+    background: rgba(40, 167, 69, 0.2);
+    color: #28a745;
+}
+
+.stock-low {
+    background: rgba(255, 193, 7, 0.2);
+    color: #ffc107;
+}
+
+.stock-out {
+    background: rgba(220, 53, 69, 0.2);
+    color: #dc3545;
+}
+
+.quantity-selector {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.quantity-btn {
+    width: 40px;
+    height: 40px;
+    border: 1px solid #444;
+    background: #1a1a1a;
+    color: white;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.quantity-btn:hover {
+    background: #2a2a2a;
+    border-color: #667eea;
+}
+
+.quantity-input {
+    width: 60px;
+    height: 40px;
+    text-align: center;
+    border: 1px solid #444;
+    background: #1a1a1a;
+    color: white;
+    border-radius: 5px;
+}
+
+.action-buttons .btn {
+    padding: 12px 25px;
+    font-weight: 500;
+}
+
+.product-tabs .nav-link {
+    color: #ddd;
+    border: none;
+    padding: 12px 25px;
+    transition: all 0.3s;
+}
+
+.product-tabs .nav-link:hover {
+    color: white;
+}
+
+.product-tabs .nav-link.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 5px 5px 0 0;
+}
+
+.tab-content {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 0 10px 10px 10px;
+    padding: 25px;
+}
+
+.specs-table td {
+    padding: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.specs-table td:first-child {
+    color: #aaa;
+    width: 200px;
+}
+
+.related-product-card {
+    transition: transform 0.3s;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.related-product-card:hover {
+    transform: translateY(-5px);
+    border-color: #667eea;
+}
+
+.related-product-img {
+    height: 150px;
+    object-fit: cover;
+}
+
+.breadcrumb-item a {
+    color: #667eea;
+}
+
+.breadcrumb-item.active {
+    color: #aaa;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Fil d'Ariane -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'product_list' %}">Produits</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'product_list_by_category' product.category.slug %}">{{ product.category.name }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ product.name|truncatechars:30 }}</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <!-- Galerie d'images -->
+        <div class="col-lg-6 mb-4">
+            <div class="product-gallery p-3">
+                <!-- Image principale -->
+                <img id="main-image" src="{% if product.image %}{{ product.image.url }}{% else %}https://via.placeholder.com/600x400?text={{ product.name }}{% endif %}" 
+                     class="main-image" alt="{{ product.name }}">
+                
+                <!-- Miniatures -->
+                <div class="thumbnail-container">
+                    <img src="{% if product.image %}{{ product.image.url }}{% else %}https://via.placeholder.com/600x400?text={{ product.name }}{% endif %}" 
+                         class="thumbnail active" onclick="changeMainImage(this.src)" alt="{{ product.name }}">
+                    
+                    {% for image in product.images.all %}
+                    <img src="{{ image.image.url }}" class="thumbnail" 
+                         onclick="changeMainImage(this.src)" alt="{{ image.alt_text|default:product.name }}">
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Informations du produit -->
+        <div class="col-lg-6">
+            <div class="product-info-card">
+                <!-- Catégorie et marque -->
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <span class="badge bg-dark me-2">
+                            <i class="fas fa-tag me-1"></i>{{ product.category.name }}
+                        </span>
+                        {% if product.brand %}
+                        <span class="badge bg-info">
+                            <i class="fas fa-copyright me-1"></i>{{ product.brand }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    
+                    {% if product.has_discount %}
+                    <span class="discount-badge-large">
+                        -{{ product.discount_percentage }}%
+                    </span>
+                    {% endif %}
+                </div>
+
+                <!-- Nom du produit -->
+                <h1 class="h2 mb-3">{{ product.name }}</h1>
+                
+                <!-- Note (étoiles) -->
+                <div class="mb-3">
+                    <div class="text-warning">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star-half-alt"></i>
+                    </div>
+                    <small class="text-light-50">(4.5/5 - 128 avis)</small>
+                </div>
+
+                <!-- Prix -->
+                <div class="price-section mb-4">
+                    {% if product.has_discount %}
+                    <div class="original-price">€{{ product.price }}</div>
+                    <div class="final-price">€{{ product.final_price }}</div>
+                    <small class="text-success">
+                        <i class="fas fa-save me-1"></i>
+                        Économisez €{{ product.price|floatformat:2|add:"-"|add:product.discount_price|floatformat:2 }}
+                    </small>
+                    {% else %}
+                    <div class="normal-price">€{{ product.final_price }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Stock -->
+                <div class="mb-4">
+                    {% if product.stock > 10 %}
+                    <span class="stock-status stock-in">
+                        <i class="fas fa-check-circle me-1"></i>
+                        En stock ({{ product.stock }} disponibles)
+                    </span>
+                    {% elif product.stock > 0 %}
+                    <span class="stock-status stock-low">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        Stock limité ({{ product.stock }} restants)
+                    </span>
+                    {% else %}
+                    <span class="stock-status stock-out">
+                        <i class="fas fa-times-circle me-1"></i>
+                        Rupture de stock
+                    </span>
+                    {% endif %}
+                </div>
+
+                <!-- Description courte -->
+                <p class="text-light-50 mb-4">
+                    {{ product.description|truncatewords:30 }}
+                </p>
+
+                <!-- Sélecteur de quantité -->
+                <div class="mb-4">
+                    <label class="form-label">Quantité</label>
+                    <div class="quantity-selector">
+                        <button class="quantity-btn" onclick="updateQuantity(-1)">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <input type="number" id="quantity" class="quantity-input" value="1" min="1" max="{{ product.stock }}">
+                        <button class="quantity-btn" onclick="updateQuantity(1)">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                        
+                        <span class="text-light-50 ms-3">
+                            {{ product.stock }} disponible{% if product.stock > 1 %}s{% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Boutons d'action -->
+                <div class="action-buttons d-grid gap-3 mb-4">
+                    {% if product.stock > 0 %}
+                    <button class="btn btn-primary btn-lg add-to-cart" data-product-id="{{ product.id }}">
+                        <i class="fas fa-shopping-cart me-2"></i>Ajouter au panier
+                    </button>
+                    
+                    <button class="btn btn-outline-info btn-lg">
+                        <i class="fas fa-heart me-2"></i>Ajouter aux favoris
+                    </button>
+                    {% else %}
+                    <button class="btn btn-secondary btn-lg" disabled>
+                        <i class="fas fa-bell me-2"></i>Me prévenir quand disponible
+                    </button>
+                    {% endif %}
+                </div>
+
+                <!-- Livraison et garantie -->
+                <div class="row g-3 text-center">
+                    <div class="col-4">
+                        <div class="text-info">
+                            <i class="fas fa-shipping-fast fa-2x mb-2"></i>
+                            <div class="small">Livraison gratuite</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-success">
+                            <i class="fas fa-shield-alt fa-2x mb-2"></i>
+                            <div class="small">2 ans garantie</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-warning">
+                            <i class="fas fa-undo fa-2x mb-2"></i>
+                            <div class="small">30 jours retour</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Onglets détaillés -->
+    <div class="mt-5">
+        <ul class="nav nav-tabs product-tabs" id="productTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="description-tab" data-bs-toggle="tab" 
+                        data-bs-target="#description" type="button" role="tab">
+                    <i class="fas fa-info-circle me-2"></i>Description
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="specs-tab" data-bs-toggle="tab" 
+                        data-bs-target="#specs" type="button" role="tab">
+                    <i class="fas fa-cogs me-2"></i>Spécifications
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="reviews-tab" data-bs-toggle="tab" 
+                        data-bs-target="#reviews" type="button" role="tab">
+                    <i class="fas fa-star me-2"></i>Avis (128)
+                </button>
+            </li>
+        </ul>
+        
+        <div class="tab-content" id="productTabsContent">
+            <!-- Description -->
+            <div class="tab-pane fade show active" id="description" role="tabpanel">
+                <h4 class="mb-4">Description détaillée</h4>
+                <div class="text-light-50">
+                    {{ product.description|linebreaks }}
+                </div>
+            </div>
+            
+            <!-- Spécifications -->
+            <div class="tab-pane fade" id="specs" role="tabpanel">
+                <h4 class="mb-4">Caractéristiques techniques</h4>
+                <table class="table specs-table">
+                    {% if product.brand %}
+                    <tr>
+                        <td>Marque</td>
+                        <td>{{ product.brand }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if product.weight %}
+                    <tr>
+                        <td>Poids</td>
+                        <td>{{ product.weight }} kg</td>
+                    </tr>
+                    {% endif %}
+                    {% if product.dimensions %}
+                    <tr>
+                        <td>Dimensions</td>
+                        <td>{{ product.dimensions }}</td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <td>Catégorie</td>
+                        <td>{{ product.category.name }}</td>
+                    </tr>
+                    <tr>
+                        <td>Stock</td>
+                        <td>{{ product.stock }} unité{% if product.stock > 1 %}s{% endif %}</td>
+                    </tr>
+                    <tr>
+                        <td>Disponibilité</td>
+                        <td>
+                            {% if product.is_available %}
+                            <span class="text-success">Disponible</span>
+                            {% else %}
+                            <span class="text-danger">Indisponible</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            
+            <!-- Avis -->
+            <div class="tab-pane fade" id="reviews" role="tabpanel">
+                <h4 class="mb-4">Avis clients</h4>
+                <div class="text-center py-4">
+                    <div class="display-1 text-warning mb-3">4.5/5</div>
+                    <div class="text-warning h3 mb-3">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star-half-alt"></i>
+                    </div>
+                    <p class="text-light-50">Basé sur 128 avis vérifiés</p>
+                </div>
+                
+                <!-- Formulaire d'avis (connecté seulement) -->
+                {% if user.is_authenticated %}
+                <div class="card bg-dark mb-4">
+                    <div class="card-body">
+                        <h5>Donnez votre avis</h5>
+                        <div class="mb-3">
+                            <div class="rating-stars">
+                                {% for i in "12345" %}
+                                <i class="far fa-star fa-2x rating-star" data-rating="{{ i }}" style="cursor: pointer; color: #ffc107;"></i>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <textarea class="form-control bg-dark text-light mb-3" rows="3" placeholder="Partagez votre expérience..."></textarea>
+                        <button class="btn btn-primary">Publier mon avis</button>
+                    </div>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <a href="{% url 'login' %}" class="text-decoration-none">Connectez-vous</a> pour laisser un avis.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Produits similaires -->
+    {% if related_products %}
+    <div class="mt-5">
+        <h3 class="mb-4 gradient-text">
+            <i class="fas fa-random me-2"></i>Produits similaires
+        </h3>
+        
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
+            {% for related in related_products %}
+            <div class="col">
+                <div class="card related-product-card h-100">
+                    <img src="{% if related.image %}{{ related.image.url }}{% else %}https://via.placeholder.com/300x200?text={{ related.name }}{% endif %}" 
+                         class="card-img-top related-product-img" alt="{{ related.name }}">
+                    
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <a href="{% url 'product_detail' related.slug %}" class="text-decoration-none text-light">
+                                {{ related.name|truncatechars:40 }}
+                            </a>
+                        </h6>
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                {% if related.has_discount %}
+                                <small class="text-danger">€{{ related.final_price }}</small>
+                                <br>
+                                <small class="text-light-50" style="text-decoration: line-through;">€{{ related.price }}</small>
+                                {% else %}
+                                <span class="text-light">€{{ related.final_price }}</span>
+                                {% endif %}
+                            </div>
+                            
+                            <a href="{% url 'product_detail' related.slug %}" class="btn btn-sm btn-outline-info">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Changement d'image principale
+function changeMainImage(src) {
+    $('#main-image').attr('src', src);
+    $('.thumbnail').removeClass('active');
+    $(event.target).addClass('active');
+}
+
+// Gestion de la quantité
+function updateQuantity(change) {
+    const input = $('#quantity');
+    let value = parseInt(input.val());
+    const max = parseInt(input.attr('max'));
+    
+    value += change;
+    if (value < 1) value = 1;
+    if (value > max) value = max;
+    
+    input.val(value);
+}
+
+// Ajout au panier avec quantité
+$('.add-to-cart').click(function() {
+    const productId = $(this).data('product-id');
+    const quantity = $('#quantity').val();
+    const button = $(this);
+    
+    button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Ajout en cours...');
+    
+    $.ajax({
+        url: '{% url "add_to_cart" 0 %}'.replace('0', productId),
+        type: 'POST',
+        data: {
+            quantity: quantity,
+            csrfmiddlewaretoken: '{{ csrf_token }}'
+        },
+        success: function(response) {
+            if (response.success) {
+                // Mettre à jour le compteur du panier
+                $('.cart-count').text(response.cart_total);
+                
+                // Notification
+                showNotification('success', response.message);
+                
+                // Réinitialiser le bouton
+                setTimeout(function() {
+                    button.prop('disabled', false).html('<i class="fas fa-shopping-cart me-2"></i>Ajouter au panier');
+                }, 1500);
+            }
+        },
+        error: function() {
+            showNotification('error', 'Une erreur est survenue');
+            button.prop('disabled', false).html('<i class="fas fa-shopping-cart me-2"></i>Ajouter au panier');
+        }
+    });
+});
+
+// Système de notation
+$('.rating-star').hover(function() {
+    const rating = $(this).data('rating');
+    $('.rating-star').each(function(i) {
+        if (i < rating) {
+            $(this).removeClass('far').addClass('fas');
+        } else {
+            $(this).removeClass('fas').addClass('far');
+        }
+    });
+});
+
+$('.rating-star').click(function() {
+    const rating = $(this).data('rating');
+    alert('Merci pour votre note de ' + rating + ' étoiles !');
+});
+
+function showNotification(type, message) {
+    const alert = $('<div class="alert alert-' + (type === 'success' ? 'success' : 'danger') + 
+                   ' alert-dismissible fade show position-fixed" style="top: 20px; right: 20px; z-index: 9999;">' +
+                   '<i class="fas fa-' + (type === 'success' ? 'check-circle' : 'exclamation-triangle') + ' me-2"></i>' +
+                   message +
+                   '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+                   '</div>');
+    
+    $('body').append(alert);
+    
+    setTimeout(function() {
+        alert.alert('close');
+    }, 3000);
+}
+</script>
+{% endblock %}

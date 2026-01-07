@@ -1,0 +1,534 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Paiement - Nexus Shop{% endblock %}
+
+{% block extra_css %}
+<style>
+.checkout-container {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    padding: 30px;
+}
+
+.checkout-step {
+    display: flex;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.step-number {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(102, 126, 234, 0.2);
+    color: #667eea;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 15px;
+}
+
+.step-number.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.step-content h4 {
+    margin-bottom: 5px;
+}
+
+.step-content p {
+    color: #aaa;
+    margin-bottom: 0;
+}
+
+.form-section {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 10px;
+    padding: 25px;
+    margin-bottom: 25px;
+}
+
+.form-section h5 {
+    color: #667eea;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.order-summary {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    padding: 25px;
+    position: sticky;
+    top: 20px;
+}
+
+.order-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.order-item:last-child {
+    border-bottom: none;
+}
+
+.order-item.total {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #667eea;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.payment-methods {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.payment-method {
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 15px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.payment-method:hover {
+    border-color: #667eea;
+    background: rgba(102, 126, 234, 0.1);
+}
+
+.payment-method.active {
+    border-color: #667eea;
+    background: rgba(102, 126, 234, 0.2);
+}
+
+.payment-method i {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.shipping-method {
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.shipping-method:hover {
+    border-color: #667eea;
+}
+
+.shipping-method.active {
+    border-color: #667eea;
+    background: rgba(102, 126, 234, 0.1);
+}
+
+.security-badge {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px;
+    border-radius: 10px;
+    margin-top: 20px;
+}
+
+.terms-checkbox {
+    margin: 20px 0;
+}
+
+.required-field::after {
+    content: " *";
+    color: #ff6b6b;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'cart' %}">Panier</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Paiement</li>
+        </ol>
+    </nav>
+
+    <h1 class="mb-4 gradient-text">
+        <i class="fas fa-lock me-2"></i>Paiement sécurisé
+    </h1>
+
+    {% if cart and cart.total_items > 0 %}
+    <div class="row">
+        <!-- Formulaire de paiement -->
+        <div class="col-lg-8 mb-4">
+            <div class="checkout-container">
+                <!-- Étapes -->
+                <div class="checkout-step">
+                    <div class="step-number active">1</div>
+                    <div class="step-content">
+                        <h4>Informations de livraison</h4>
+                        <p>Remplissez vos coordonnées de livraison</p>
+                    </div>
+                </div>
+
+                <!-- Adresse de livraison -->
+                <form method="post" id="checkout-form">
+                    {% csrf_token %}
+                    
+                    <div class="form-section">
+                        <h5>
+                            <i class="fas fa-map-marker-alt me-2"></i>
+                            Adresse de livraison
+                        </h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label required-field">Prénom</label>
+                                <input type="text" class="form-control bg-dark text-light" 
+                                       name="first_name" value="{{ user.first_name }}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label required-field">Nom</label>
+                                <input type="text" class="form-control bg-dark text-light" 
+                                       name="last_name" value="{{ user.last_name }}" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label required-field">Adresse</label>
+                            <textarea class="form-control bg-dark text-light" 
+                                      name="shipping_address" rows="3" required>{{ form.shipping_address.value|default:user.profile.address|default:'' }}</textarea>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label required-field">Ville</label>
+                                <input type="text" class="form-control bg-dark text-light" 
+                                       name="city" value="{{ form.city.value|default:user.profile.city|default:'' }}" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label required-field">Code postal</label>
+                                <input type="text" class="form-control bg-dark text-light" 
+                                       name="postal_code" value="{{ form.postal_code.value|default:user.profile.postal_code|default:'' }}" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label required-field">Pays</label>
+                                <select class="form-select bg-dark text-light" name="country" required>
+                                    <option value="">Sélectionnez un pays</option>
+                                    <option value="France" {% if form.country.value|default:user.profile.country|default:'' == 'France' %}selected{% endif %}>France</option>
+                                    <option value="Belgique" {% if form.country.value|default:user.profile.country|default:'' == 'Belgique' %}selected{% endif %}>Belgique</option>
+                                    <option value="Suisse" {% if form.country.value|default:user.profile.country|default:'' == 'Suisse' %}selected{% endif %}>Suisse</option>
+                                    <option value="Canada" {% if form.country.value|default:user.profile.country|default:'' == 'Canada' %}selected{% endif %}>Canada</option>
+                                    <option value="Autre" {% if form.country.value|default:user.profile.country|default:'' == 'Autre' %}selected{% endif %}>Autre</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label required-field">Téléphone</label>
+                            <input type="tel" class="form-control bg-dark text-light" 
+                                   name="phone" value="{{ form.phone.value|default:user.profile.phone|default:'' }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label required-field">Email</label>
+                            <input type="email" class="form-control bg-dark text-light" 
+                                   name="email" value="{{ user.email }}" required>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="same-address" checked>
+                            <label class="form-check-label" for="same-address">
+                                Utiliser la même adresse pour la facturation
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Méthode de livraison -->
+                    <div class="form-section">
+                        <h5>
+                            <i class="fas fa-shipping-fast me-2"></i>
+                            Méthode de livraison
+                        </h5>
+                        
+                        <div class="shipping-method active" onclick="selectShipping('standard')">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="shipping_method" 
+                                       id="standard-shipping" value="standard" checked>
+                                <label class="form-check-label" for="standard-shipping">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <strong>Livraison standard</strong>
+                                            <p class="mb-0 text-light-50">Livré sous 3-5 jours ouvrables</p>
+                                        </div>
+                                        <div class="text-success">Gratuit</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="shipping-method" onclick="selectShipping('express')">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="shipping_method" 
+                                       id="express-shipping" value="express">
+                                <label class="form-check-label" for="express-shipping">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <strong>Livraison express</strong>
+                                            <p class="mb-0 text-light-50">Livré sous 24h</p>
+                                        </div>
+                                        <div>€9.99</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mode de paiement -->
+                    <div class="form-section">
+                        <h5>
+                            <i class="fas fa-credit-card me-2"></i>
+                            Mode de paiement
+                        </h5>
+                        
+                        <div class="payment-methods">
+                            <div class="payment-method active" onclick="selectPayment('card')">
+                                <i class="fab fa-cc-visa"></i>
+                                <div>Carte bancaire</div>
+                            </div>
+                            
+                            <div class="payment-method" onclick="selectPayment('paypal')">
+                                <i class="fab fa-paypal"></i>
+                                <div>PayPal</div>
+                            </div>
+                            
+                            <div class="payment-method" onclick="selectPayment('applepay')">
+                                <i class="fab fa-apple-pay"></i>
+                                <div>Apple Pay</div>
+                            </div>
+                            
+                            <div class="payment-method" onclick="selectPayment('transfer')">
+                                <i class="fas fa-university"></i>
+                                <div>Virement</div>
+                            </div>
+                        </div>
+                        
+                        <input type="hidden" id="payment_method" name="payment_method" value="credit_card">
+                        
+                        <!-- Formulaire de carte (affiché seulement si carte sélectionnée) -->
+                        <div id="card-details" class="mt-4">
+                            <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label required-field">Numéro de carte</label>
+                                    <input type="text" class="form-control bg-dark text-light" 
+                                           placeholder="1234 5678 9012 3456" maxlength="19">
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label required-field">Date d'expiration</label>
+                                    <input type="text" class="form-control bg-dark text-light" 
+                                           placeholder="MM/AA">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label required-field">CVV</label>
+                                    <input type="text" class="form-control bg-dark text-light" 
+                                           placeholder="123" maxlength="3">
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label required-field">Titulaire de la carte</label>
+                                    <input type="text" class="form-control bg-dark text-light" 
+                                           value="{{ user.get_full_name|default:user.username }}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="form-section">
+                        <h5>
+                            <i class="fas fa-sticky-note me-2"></i>
+                            Notes de commande
+                        </h5>
+                        
+                        <div class="mb-3">
+                            <textarea class="form-control bg-dark text-light" name="notes" 
+                                      rows="4" placeholder="Instructions spéciales pour la livraison, commentaires..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Conditions générales -->
+                    <div class="terms-checkbox">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="terms" required>
+                            <label class="form-check-label" for="terms">
+                                J'accepte les 
+                                <a href="#" class="text-info">conditions générales de vente</a> 
+                                et la 
+                                <a href="#" class="text-info">politique de confidentialité</a>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Boutons -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'cart' %}" class="btn btn-outline-info">
+                            <i class="fas fa-arrow-left me-2"></i>Retour au panier
+                        </a>
+                        
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-lock me-2"></i>Payer €{{ cart.total_price|floatformat:2 }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Récapitulatif de commande -->
+        <div class="col-lg-4">
+            <div class="order-summary">
+                <h3 class="mb-4">Récapitulatif</h3>
+                
+                <!-- Articles -->
+                {% for item in cart.items.all %}
+                <div class="order-item">
+                    <div>
+                        <div class="fw-medium">{{ item.quantity }}x {{ item.product.name|truncatechars:20 }}</div>
+                        <small class="text-light-50">{{ item.product.category.name }}</small>
+                    </div>
+                    <div>€{{ item.total_price }}</div>
+                </div>
+                {% endfor %}
+                
+                <!-- Sous-total -->
+                <div class="order-item">
+                    <span>Sous-total</span>
+                    <span>€{{ cart.total_price|floatformat:2 }}</span>
+                </div>
+                
+                <!-- Livraison -->
+                <div class="order-item">
+                    <span>Livraison</span>
+                    <span class="text-success">Gratuit</span>
+                </div>
+                
+                <!-- Total -->
+                <div class="order-item total">
+                    <span>Total</span>
+                    <span>€{{ cart.total_price|floatformat:2 }}</span>
+                </div>
+                
+                <!-- Sécurité -->
+                <div class="security-badge mt-4">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-shield-alt fa-2x me-3"></i>
+                        <div>
+                            <strong>Paiement 100% sécurisé</strong>
+                            <div class="small">Vos données sont cryptées</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Garanties -->
+                <div class="mt-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="fas fa-shipping-fast text-info me-3"></i>
+                        <div>
+                            <small class="fw-medium">Livraison gratuite</small>
+                            <div class="small text-light-50">Sur toutes les commandes</div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="fas fa-undo text-warning me-3"></i>
+                        <div>
+                            <small class="fw-medium">Retours faciles</small>
+                            <div class="small text-light-50">30 jours pour changer d'avis</div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-shield-alt text-success me-3"></i>
+                        <div>
+                            <small class="fw-medium">Garantie 2 ans</small>
+                            <div class="small text-light-50">Sur tous nos produits</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Panier vide -->
+    <div class="alert alert-warning text-center py-5">
+        <i class="fas fa-shopping-cart fa-3x mb-3"></i>
+        <h3>Votre panier est vide</h3>
+        <p class="mb-4">Ajoutez des produits à votre panier avant de passer commande.</p>
+        <a href="{% url 'product_list' %}" class="btn btn-primary">
+            <i class="fas fa-shopping-bag me-2"></i>Voir les produits
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Sélection du mode de paiement
+function selectPayment(method) {
+    $('.payment-method').removeClass('active');
+    $(event.target).closest('.payment-method').addClass('active');
+    $('#payment_method').val(method);
+    
+    // Afficher/masquer les détails de la carte
+    if (method === 'card') {
+        $('#card-details').show();
+    } else {
+        $('#card-details').hide();
+    }
+}
+
+// Sélection du mode de livraison
+function selectShipping(method) {
+    $('.shipping-method').removeClass('active');
+    $(event.target).closest('.shipping-method').addClass('active');
+}
+
+// Format du numéro de carte
+$('input[placeholder="1234 5678 9012 3456"]').on('input', function() {
+    let value = $(this).val().replace(/\D/g, '');
+    value = value.replace(/(\d{4})/g, '$1 ').trim();
+    $(this).val(value);
+});
+
+// Validation du formulaire
+$('#checkout-form').submit(function(e) {
+    if (!$('#terms').is(':checked')) {
+        e.preventDefault();
+        alert('Veuillez accepter les conditions générales de vente.');
+        return false;
+    }
+    
+    // Ici, vous pourriez ajouter plus de validation
+    // Par exemple, validation des champs de carte si carte sélectionnée
+});
+</script>
+{% endblock %}

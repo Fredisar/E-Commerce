@@ -9,7 +9,7 @@
     <div class="hero-content text-center">
         <h1 class="display-4 mb-4 gradient-text">Bienvenue dans le futur</h1>
         <p class="lead mb-4">Découvrez les dernières innovations technologiques<br>dans notre boutique en ligne futuriste</p>
-        <a href="#featured" class="btn btn-primary btn-lg pulse-animation">
+        <a href="{% url 'product_list' %}" class="btn btn-primary btn-lg pulse-animation">
             <i class="fas fa-rocket me-2"></i>Explorer maintenant
         </a>
     </div>
@@ -21,7 +21,7 @@
     <div class="row">
         {% for category in categories %}
         <div class="col-md-4 col-lg-2 mb-4">
-            <a href="{% url 'product_list' category.slug %}" class="text-decoration-none">
+            <a href="{% url 'product_list_by_category' category.slug %}" class="text-decoration-none">
                 <div class="category-card text-center p-4 rounded product-card">
                     <div class="mb-3">
                         <i class="fas fa-microchip fa-3x gradient-text"></i>
@@ -29,6 +29,10 @@
                     <h5 class="mb-0">{{ category.name }}</h5>
                 </div>
             </a>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center">
+            <p class="text-light-50">Aucune catégorie disponible pour le moment.</p>
         </div>
         {% endfor %}
     </div>
@@ -48,11 +52,17 @@
         <div class="col-md-6 col-lg-3 mb-4">
             <div class="product-card p-3 h-100">
                 {% if product.has_discount %}
-                <span class="product-badge">-{{ product.discount_percent }}%</span>
+                <span class="product-badge">-{{ product.discount_percentage }}%</span>
                 {% endif %}
                 
                 <div class="product-img-container mb-3">
-                    <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-img">
+                    {% if product.image and product.image.url %}
+                        <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-img">
+                    {% else %}
+                        <div class="product-img-placeholder d-flex align-items-center justify-content-center bg-secondary">
+                            <i class="fas fa-image fa-3x text-light-50"></i>
+                        </div>
+                    {% endif %}
                 </div>
                 
                 <h5 class="mb-2">{{ product.name|truncatechars:40 }}</h5>
@@ -69,9 +79,15 @@
                     <a href="{% url 'product_detail' product.slug %}" class="btn btn-outline-info btn-sm">
                         <i class="fas fa-eye me-1"></i> Détails
                     </a>
+                    {% if product.stock > 0 %}
                     <button class="btn btn-primary btn-sm add-to-cart" data-product-id="{{ product.id }}">
                         <i class="fas fa-cart-plus me-1"></i> Ajouter
                     </button>
+                    {% else %}
+                    <button class="btn btn-secondary btn-sm disabled">
+                        <i class="fas fa-times me-1"></i> Rupture
+                    </button>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -94,7 +110,13 @@
                 <span class="product-badge" style="background: var(--accent-color)">PROMO</span>
                 
                 <div class="product-img-container mb-3">
-                    <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-img">
+                    {% if product.image and product.image.url %}
+                        <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-img">
+                    {% else %}
+                        <div class="product-img-placeholder d-flex align-items-center justify-content-center bg-danger">
+                            <i class="fas fa-fire fa-3x text-light"></i>
+                        </div>
+                    {% endif %}
                 </div>
                 
                 <h5 class="mb-2">{{ product.name|truncatechars:40 }}</h5>
@@ -108,9 +130,15 @@
                     <a href="{% url 'product_detail' product.slug %}" class="btn btn-outline-info btn-sm">
                         <i class="fas fa-eye me-1"></i> Détails
                     </a>
+                    {% if product.stock > 0 %}
                     <button class="btn btn-danger btn-sm add-to-cart" data-product-id="{{ product.id }}">
                         <i class="fas fa-bolt me-1"></i> Acheter
                     </button>
+                    {% else %}
+                    <button class="btn btn-secondary btn-sm disabled">
+                        <i class="fas fa-times me-1"></i> Rupture
+                    </button>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -152,6 +180,23 @@
         </div>
     </div>
 </section>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .product-img-placeholder {
+        width: 100%;
+        height: 200px;
+        border-radius: 8px;
+    }
+    
+    .product-img {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        border-radius: 8px;
+    }
+</style>
 {% endblock %}
 
 {% block extra_js %}

@@ -20,6 +20,8 @@ from django.db import transaction
 import logging
 from .models import User  # User personnalisé
 from django.db import models
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 # Import des modèles CORRECTS
 from .models import Product, Category, Cart, CartItem, Order
@@ -35,71 +37,127 @@ logger = logging.getLogger(__name__)
 
 def home(request):
     """Vue pour la page d'accueil"""
-    featured_products = Product.objects.filter(is_available=True).order_by('-created_at')[:8]
+    categories = Category.objects.all()
+    featured_products = Product.objects.filter(is_available=True)[:8]
     discounted_products = Product.objects.filter(
         discount_price__isnull=False, 
         is_available=True
-    ).order_by('?')[:4]
-    
-    categories = Category.objects.all()[:6]
+    )[:4]
     
     context = {
+        'categories': categories,
         'featured_products': featured_products,
         'discounted_products': discounted_products,
-        'categories': categories,
     }
+    
     return render(request, 'home.html', context)
 
+
 def product_list(request, category_slug=None):
-    """Vue pour la liste des produits"""
-    category = None
-    categories = Category.objects.all()
-    products = Product.objects.filter(is_available=True)
+    """Vue pour afficher la liste des produits avec recherche et filtrage"""
     
+    # Initialiser les variables
+    products = Product.objects.filter(is_available=True)
+    category = None
+    query = request.GET.get('q', '')  # Récupérer le terme de recherche
+    
+    # Filtrage par catégorie
     if category_slug:
         category = get_object_or_404(Category, slug=category_slug)
         products = products.filter(category=category)
     
-    # Recherche
-    query = request.GET.get('q')
+    # Recherche par terme
     if query:
         products = products.filter(
-            Q(name__icontains=query) | 
+            Q(name__icontains=query) |
             Q(description__icontains=query) |
             Q(category__name__icontains=query)
-        )
+        ).distinct()
     
-    # Filtrage par prix
-    min_price = request.GET.get('min_price')
-    max_price = request.GET.get('max_price')
-    if min_price:
-        products = products.filter(price__gte=min_price)
-    if max_price:
-        products = products.filter(price__lte=max_price)
-    
-    # Tri
-    sort_by = request.GET.get('sort_by', 'newest')
-    if sort_by == 'price_asc':
-        products = products.order_by('price')
-    elif sort_by == 'price_desc':
-        products = products.order_by('-price')
-    elif sort_by == 'name':
-        products = products.order_by('name')
-    else:  # newest
-        products = products.order_by('-created_at')
-    
-    # Pagination
-    paginator = Paginator(products, 12)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    # Récupérer toutes les catégories pour le menu
+    categories = Category.objects.all()
     
     context = {
+        'products': products,
         'category': category,
         'categories': categories,
-        'products': page_obj,
-        'sort_by': sort_by,
+        'query': query,
     }
+    
     return render(request, 'product_list.html', context)
+
+
+
+def product_list_by_category(request, category_slug):
+    """
+    Affiche les produits d'une catégorie spécifique avec pagination
+    """
+    # Récupérer la catégorie
+    category = get_object_or_404(Category, slug=category_slug)
+    
+    # Récupérer le terme de recherche
+    query = request.GET.get('q', '')
+    
+    # Base queryset
+    products = Product.objects.filter(
+        category=category,
+        is_available=True
+    )
+    
+    # Recherche
+    if query:
+        products = products.filter(
+            Q(name__icontains=query) |
+            Q(description__icontains=query) |
+            Q(brand__icontains=query)
+        ).distinct()
+    
+    # Tri
+    sort_by = request.GET.get('sort', 'newest')
+    if sort_by == 'price_asc':
+        products = products.order_by('final_price')
+    elif sort_by == 'price_desc':
+        products = products.order_by('-final_price')
+    elif sort_by == 'name':
+        products = products.order_by('name')
+    elif sort_by == 'popular':
+        # Ici vous pourriez trier par nombre de ventes si vous avez ce champ
+        products = products.order_by('-created_at')
+    else:  # 'newest' par défaut
+        products = products.order_by('-created_at')
+    
+    # Pagination - 12 produits par page
+    paginator = Paginator(products, 12)
+    page = request.GET.get('page', 1)
+    
+    try:
+        products_page = paginator.page(page)
+    except PageNotAnInteger:
+        products_page = paginator.page(1)
+    except EmptyPage:
+        products_page = paginator.page(paginator.num_pages)
+    
+    # Données pour le template
+    categories = Category.objects.all()
+    
+    # Sous-catégories (si vous en avez)
+    # subcategories = category.subcategories.all()  # Si vous avez un champ parent
+    
+    context = {
+        'products': products_page,
+        'category': category,
+        'categories': categories,
+        'query': query,
+        'sort_by': sort_by,
+        'page_obj': products_page,  # Pour la pagination
+        'paginator': paginator,
+        'is_paginated': paginator.num_pages > 1,
+        'product_count': products.count(),
+        # 'subcategories': subcategories,  # Si vous avez des sous-catégories
+    }
+    
+    return render(request, 'product_list.html', context)
+
 
 def product_detail(request, slug):
     """Vue pour les détails d'un produit"""
@@ -293,23 +351,23 @@ def user_login(request):
         form = AuthenticationForm()
     
     return render(request, 'login.html', {'form': form})
-
+@ensure_csrf_cookie
 def user_register(request):
     """
-    Vue pour l'inscription utilisateur avec transaction PostgreSQL
+    Vue pour l'inscription utilisateur
     """
     if request.user.is_authenticated:
         messages.info(request, "Vous êtes déjà connecté.")
         return redirect('home')
     
     if request.method == 'POST':
+        # Utilisez request.POST directement
         form = UserRegistrationForm(request.POST)
         
         if form.is_valid():
             try:
-                # Commencer une transaction pour garantir l'intégrité des données
                 with transaction.atomic():
-                    # 1. Créer l'utilisateur Django (table auth_user)
+                    # Créer l'utilisateur
                     user = User.objects.create_user(
                         username=form.cleaned_data['username'],
                         email=form.cleaned_data['email'],
@@ -318,39 +376,31 @@ def user_register(request):
                         last_name=form.cleaned_data.get('last_name', '')
                     )
                     
-                    # 2. Créer le profil utilisateur (UserProfile ou Customer)
-                    # MODIFIEZ ICI si vous avez changé le nom du modèle
+                    # Créer le profil utilisateur
                     UserProfile.objects.create(
                         user=user,
                         phone=form.cleaned_data.get('phone', ''),
                         newsletter_subscription=form.cleaned_data.get('newsletter_subscription', True)
                     )
                     
-                    # 3. Connecter automatiquement l'utilisateur
+                    # Connecter automatiquement l'utilisateur
                     login(request, user)
                     
-                    # 4. Log de l'inscription
-                    logger.info(f"Nouvel utilisateur inscrit: {user.username} ({user.email})")
-                    
-                    # 5. Message de succès
                     messages.success(
                         request, 
                         f"Bienvenue {user.first_name or user.username} ! Votre compte a été créé avec succès."
                     )
                     
-                    # 6. Rediriger vers la page d'accueil
                     return redirect('home')
                     
             except Exception as e:
-                # En cas d'erreur, la transaction est annulée automatiquement
                 logger.error(f"Erreur lors de l'inscription: {str(e)}")
                 messages.error(
                     request,
-                    "Une erreur est survenue lors de la création de votre compte. "
-                    "Veuillez réessayer."
+                    f"Erreur: {str(e)}"
                 )
         else:
-            # Afficher les erreurs de validation
+            # Afficher les erreurs
             for field, errors in form.errors.items():
                 for error in errors:
                     messages.error(request, f"{field}: {error}")
@@ -439,47 +489,87 @@ def user_profile(request):
 
 def search_view(request):
     """Vue pour la recherche avancée"""
+    # Récupérer les paramètres de recherche
     query = request.GET.get('q', '')
-    category = request.GET.get('category', '')
+    category_slug = request.GET.get('category', '')
     min_price = request.GET.get('min_price', '')
     max_price = request.GET.get('max_price', '')
+    sort = request.GET.get('sort', 'relevance')
+    in_stock = request.GET.get('in_stock', False)
     
+    # Initialiser le queryset
     products = Product.objects.filter(is_available=True)
     
+    # Recherche par texte
     if query:
         products = products.filter(
-            Q(name__icontains=query) | 
+            Q(name__icontains=query) |
             Q(description__icontains=query) |
+            Q(brand__icontains=query) |
             Q(category__name__icontains=query)
-        )
+        ).distinct()
     
-    if category:
-        products = products.filter(category__slug=category)
+    # Filtre par catégorie
+    selected_category = None
+    selected_category_name = ''
+    if category_slug:
+        try:
+            selected_category = Category.objects.get(slug=category_slug)
+            products = products.filter(category=selected_category)
+            selected_category_name = selected_category.name
+        except Category.DoesNotExist:
+            pass
     
+    # Filtre par prix minimum
     if min_price:
         try:
-            products = products.filter(price__gte=float(min_price))
+            min_price_float = float(min_price)
+            products = products.filter(final_price__gte=min_price_float)
         except ValueError:
             pass
     
+    # Filtre par prix maximum
     if max_price:
         try:
-            products = products.filter(price__lte=float(max_price))
+            max_price_float = float(max_price)
+            products = products.filter(final_price__lte=max_price_float)
         except ValueError:
             pass
     
+    # Filtre par disponibilité
+    if in_stock:
+        products = products.filter(stock__gt=0)
+    
+    # Tri
+    if sort == 'price_asc':
+        products = products.order_by('final_price')
+    elif sort == 'price_desc':
+        products = products.order_by('-final_price')
+    elif sort == 'newest':
+        products = products.order_by('-created_at')
+    elif sort == 'name':
+        products = products.order_by('name')
+    else:  # 'relevance'
+        # Par défaut: plus récents d'abord si pas de recherche texte
+        if not query:
+            products = products.order_by('-created_at')
+    
+    # Récupérer toutes les catégories pour le select
     categories = Category.objects.all()
     
     context = {
         'products': products,
         'categories': categories,
         'query': query,
-        'selected_category': category,
+        'selected_category': category_slug,
+        'selected_category_name': selected_category_name,
         'min_price': min_price,
         'max_price': max_price,
+        'sort': sort,
+        'in_stock': bool(in_stock),
     }
+    
     return render(request, 'search.html', context)
-
 @login_required
 def order_confirmation(request, order_id):
     """Vue pour la confirmation de commande"""

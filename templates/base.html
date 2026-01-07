@@ -47,9 +47,7 @@
                         <ul class="dropdown-menu bg-dark">
                             {% for category in categories %}
                             <li>
-                                <a class="dropdown-item text-light" href="{% url 'product_list' category.slug %}">
-                                    {{ category.name }}
-                                </a>
+                                <a class="dropdown-item text-light" href="{% url 'product_list_by_category' category.slug %}">
                             </li>
                             {% endfor %}
                         </ul>
@@ -66,7 +64,7 @@
                     <form class="d-none d-lg-flex me-3 search-form" action="{% url 'product_list' %}" method="get">
                         <div class="input-group">
                             <input type="text" class="form-control bg-dark border-primary text-light" 
-                                   name="q" placeholder="Rechercher..." aria-label="Search">
+                                name="q" placeholder="Rechercher..." aria-label="Search" value="{{ request.GET.q|default:'' }}">
                             <button class="btn btn-outline-primary" type="submit">
                                 <i class="fas fa-search"></i>
                             </button>
@@ -177,8 +175,8 @@
                 <div class="col-md-3 mb-3">
                     <h6 class="text-primary">Contact</h6>
                     <p class="text-light-50">
-                        <i class="fas fa-envelope me-2"></i> contact@nexus-shop.com<br>
-                        <i class="fas fa-phone me-2"></i> +33 1 23 45 67 89<br>
+                        <i class="fas fa-envelope me-2"></i> badofredis@gmail.com<br>
+                        <i class="fas fa-phone me-2"></i> +226 57 59 42 15<br>
                         <i class="fas fa-clock me-2"></i> 24h/24 7j/7
                     </p>
                 </div>
@@ -189,7 +187,7 @@
             <div class="row">
                 <div class="col-md-6">
                     <p class="text-light-50 mb-0">
-                        &copy; 2024 Nexus Shop. Tous droits réservés.
+                        &copy; 2026 Nexus Shop. Tous droits réservés.
                     </p>
                 </div>
                 <div class="col-md-6 text-md-end">

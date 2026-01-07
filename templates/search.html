@@ -1,0 +1,413 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Recherche - Nexus Shop{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="glow-text mb-4">Recherche avancée</h1>
+    
+    <!-- Formulaire de recherche -->
+    <div class="card bg-dark border-primary mb-5">
+        <div class="card-body">
+            <form action="{% url 'search_view' %}" method="get" class="search-form">
+                <div class="row g-3">
+                    <!-- Terme de recherche -->
+                    <div class="col-md-8">
+                        <label for="q" class="form-label text-light">Rechercher</label>
+                        <div class="input-group">
+                            <input type="text" 
+                                   class="form-control bg-dark text-light border-primary" 
+                                   id="q" 
+                                   name="q" 
+                                   placeholder="Que cherchez-vous ?" 
+                                   value="{{ query|default:'' }}">
+                            <button class="btn btn-primary" type="submit">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Catégorie -->
+                    <div class="col-md-4">
+                        <label for="category" class="form-label text-light">Catégorie</label>
+                        <select class="form-select bg-dark text-light border-primary" 
+                                id="category" name="category">
+                            <option value="">Toutes les catégories</option>
+                            {% for category in categories %}
+                            <option value="{{ category.slug }}" 
+                                    {% if selected_category == category.slug %}selected{% endif %}>
+                                {{ category.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Prix minimum -->
+                    <div class="col-md-3">
+                        <label for="min_price" class="form-label text-light">Prix minimum (€)</label>
+                        <input type="number" 
+                               class="form-control bg-dark text-light border-primary" 
+                               id="min_price" 
+                               name="min_price" 
+                               placeholder="0" 
+                               min="0" 
+                               value="{{ min_price|default:'' }}">
+                    </div>
+                    
+                    <!-- Prix maximum -->
+                    <div class="col-md-3">
+                        <label for="max_price" class="form-label text-light">Prix maximum (€)</label>
+                        <input type="number" 
+                               class="form-control bg-dark text-light border-primary" 
+                               id="max_price" 
+                               name="max_price" 
+                               placeholder="1000" 
+                               min="0" 
+                               value="{{ max_price|default:'' }}">
+                    </div>
+                    
+                    <!-- Tri -->
+                    <div class="col-md-3">
+                        <label for="sort" class="form-label text-light">Trier par</label>
+                        <select class="form-select bg-dark text-light border-primary" 
+                                id="sort" name="sort">
+                            <option value="relevance" {% if sort == 'relevance' %}selected{% endif %}>
+                                Pertinence
+                            </option>
+                            <option value="price_asc" {% if sort == 'price_asc' %}selected{% endif %}>
+                                Prix croissant
+                            </option>
+                            <option value="price_desc" {% if sort == 'price_desc' %}selected{% endif %}>
+                                Prix décroissant
+                            </option>
+                            <option value="newest" {% if sort == 'newest' %}selected{% endif %}>
+                                Plus récents
+                            </option>
+                            <option value="name" {% if sort == 'name' %}selected{% endif %}>
+                                Nom A-Z
+                            </option>
+                        </select>
+                    </div>
+                    
+                    <!-- Disponibilité -->
+                    <div class="col-md-3">
+                        <label class="form-label text-light">Disponibilité</label>
+                        <div class="form-check">
+                            <input class="form-check-input" 
+                                   type="checkbox" 
+                                   id="in_stock" 
+                                   name="in_stock" 
+                                   {% if in_stock %}checked{% endif %}>
+                            <label class="form-check-label text-light-50" for="in_stock">
+                                En stock seulement
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Boutons -->
+                <div class="mt-4 d-flex justify-content-between">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-2"></i>Rechercher
+                    </button>
+                    <a href="{% url 'search_view' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-redo me-2"></i>Réinitialiser
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Résultats de recherche -->
+    {% if query or selected_category or min_price or max_price %}
+    <div class="mb-4">
+        <h2 class="h4 mb-3">
+            {% if products %}
+                Résultats ({{ products.count }})
+            {% else %}
+                Résultats
+            {% endif %}
+        </h2>
+        
+        <!-- Filtres actifs -->
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            {% if query %}
+            <span class="badge bg-primary">
+                Recherche: "{{ query }}"
+                <a href="?{% if selected_category %}category={{ selected_category }}&{% endif %}{% if min_price %}min_price={{ min_price }}&{% endif %}{% if max_price %}max_price={{ max_price }}&{% endif %}{% if sort and sort != 'relevance' %}sort={{ sort }}&{% endif %}{% if in_stock %}in_stock=on&{% endif %}" 
+                   class="text-light ms-2">
+                    <i class="fas fa-times"></i>
+                </a>
+            </span>
+            {% endif %}
+            
+            {% if selected_category %}
+            <span class="badge bg-info">
+                Catégorie: {{ selected_category_name }}
+                <a href="?{% if query %}q={{ query }}&{% endif %}{% if min_price %}min_price={{ min_price }}&{% endif %}{% if max_price %}max_price={{ max_price }}&{% endif %}{% if sort and sort != 'relevance' %}sort={{ sort }}&{% endif %}{% if in_stock %}in_stock=on&{% endif %}" 
+                   class="text-light ms-2">
+                    <i class="fas fa-times"></i>
+                </a>
+            </span>
+            {% endif %}
+            
+            {% if min_price %}
+            <span class="badge bg-success">
+                Min: {{ min_price }}€
+                <a href="?{% if query %}q={{ query }}&{% endif %}{% if selected_category %}category={{ selected_category }}&{% endif %}{% if max_price %}max_price={{ max_price }}&{% endif %}{% if sort and sort != 'relevance' %}sort={{ sort }}&{% endif %}{% if in_stock %}in_stock=on&{% endif %}" 
+                   class="text-light ms-2">
+                    <i class="fas fa-times"></i>
+                </a>
+            </span>
+            {% endif %}
+            
+            {% if max_price %}
+            <span class="badge bg-warning">
+                Max: {{ max_price }}€
+                <a href="?{% if query %}q={{ query }}&{% endif %}{% if selected_category %}category={{ selected_category }}&{% endif %}{% if min_price %}min_price={{ min_price }}&{% endif %}{% if sort and sort != 'relevance' %}sort={{ sort }}&{% endif %}{% if in_stock %}in_stock=on&{% endif %}" 
+                   class="text-light ms-2">
+                    <i class="fas fa-times"></i>
+                </a>
+            </span>
+            {% endif %}
+        </div>
+        
+        <!-- Liste des produits -->
+        {% if products %}
+            <div class="row">
+                {% for product in products %}
+                <div class="col-md-4 col-lg-3 mb-4">
+                    <div class="product-card h-100">
+                        {% if product.has_discount %}
+                        <div class="product-badge">-{{ product.discount_percentage }}%</div>
+                        {% endif %}
+                        
+                        <div class="product-image-container">
+                            <a href="{% url 'product_detail' product.slug %}">
+                                {% if product.image and product.image.url %}
+                                    <img src="{{ product.image.url }}" 
+                                         alt="{{ product.name }}" 
+                                         class="product-image">
+                                {% else %}
+                                    <div class="product-img-placeholder">
+                                        <i class="fas fa-image fa-2x text-light-50"></i>
+                                    </div>
+                                {% endif %}
+                            </a>
+                        </div>
+                        
+                        <div class="product-info p-3">
+                            <h5 class="product-title">
+                                <a href="{% url 'product_detail' product.slug %}" 
+                                   class="text-light text-decoration-none">
+                                    {{ product.name|truncatechars:40 }}
+                                </a>
+                            </h5>
+                            
+                            <p class="text-light-50 small mb-2">
+                                {{ product.description|truncatechars:80 }}
+                            </p>
+                            
+                            <div class="d-flex align-items-center mb-3">
+                                <span class="product-price">
+                                    {{ product.final_price }} €
+                                </span>
+                                {% if product.has_discount %}
+                                <span class="discount-price ms-2">
+                                    {{ product.price }} €
+                                </span>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-2">
+                                {% if product.stock > 10 %}
+                                <span class="badge bg-success small">
+                                    <i class="fas fa-check me-1"></i> En stock
+                                </span>
+                                {% elif product.stock > 0 %}
+                                <span class="badge bg-warning small">
+                                    <i class="fas fa-exclamation me-1"></i> Stock limité
+                                </span>
+                                {% else %}
+                                <span class="badge bg-danger small">
+                                    <i class="fas fa-times me-1"></i> Rupture
+                                </span>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="d-flex justify-content-between">
+                                <a href="{% url 'product_detail' product.slug %}" 
+                                   class="btn btn-outline-info btn-sm">
+                                    <i class="fas fa-eye me-1"></i> Voir
+                                </a>
+                                
+                                {% if product.stock > 0 %}
+                                <button class="btn btn-primary btn-sm add-to-cart" 
+                                        data-product-id="{{ product.id }}">
+                                    <i class="fas fa-cart-plus me-1"></i> Ajouter
+                                </button>
+                                {% else %}
+                                <button class="btn btn-secondary btn-sm disabled">
+                                    <i class="fas fa-ban me-1"></i> Indisponible
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Pagination si nécessaire -->
+            {% if is_paginated %}
+            <nav aria-label="Page navigation" class="mt-5">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link bg-dark text-light border-primary" 
+                           href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            &laquo; Précédent
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link bg-primary border-primary">{{ num }}</span>
+                        </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link bg-dark text-light border-primary" 
+                               href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                {{ num }}
+                            </a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link bg-dark text-light border-primary" 
+                           href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                            Suivant &raquo;
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            
+        {% else %}
+            <!-- Aucun résultat -->
+            <div class="text-center py-5">
+                <i class="fas fa-search fa-4x text-light-50 mb-3"></i>
+                <h3 class="text-light-50">Aucun produit trouvé</h3>
+                <p class="text-light-50">
+                    Aucun produit ne correspond à vos critères de recherche.
+                    Essayez avec d'autres termes ou modifiez les filtres.
+                </p>
+                <a href="{% url 'search_view' %}" class="btn btn-primary mt-3">
+                    <i class="fas fa-redo me-2"></i>Réinitialiser la recherche
+                </a>
+            </div>
+        {% endif %}
+    {% else %}
+        <!-- Pas encore de recherche -->
+        <div class="text-center py-5">
+            <i class="fas fa-search fa-4x text-primary mb-3"></i>
+            <h3 class="text-light-50">Recherche avancée</h3>
+            <p class="text-light-50">
+                Utilisez les filtres ci-dessus pour affiner votre recherche.
+                Vous pouvez rechercher par nom, catégorie, prix, etc.
+            </p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .search-form .form-control:focus,
+    .search-form .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.25rem rgba(var(--primary-rgb), 0.25);
+    }
+    
+    .product-card {
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+    
+    .product-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(243, 229, 229, 0.3);
+    }
+    
+    .product-img-placeholder {
+        width: 100%;
+        height: 200px;
+        background: linear-gradient(135deg, #272424ff 0%, #1a1a1a 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Ajout au panier
+    $('.add-to-cart').click(function(e) {
+        e.preventDefault();
+        var productId = $(this).data('product-id');
+        var button = $(this);
+        
+        // Désactiver le bouton
+        button.prop('disabled', true);
+        button.html('<i class="fas fa-spinner fa-spin me-1"></i>');
+        
+        $.ajax({
+            url: '/cart/add/' + productId + '/',
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            success: function(response) {
+                // Réactiver le bouton
+                button.prop('disabled', false);
+                button.html('<i class="fas fa-cart-plus me-1"></i> Ajouter');
+                
+                // Mettre à jour le compteur
+                $('.cart-count').text(response.cart_item_count);
+                
+                // Afficher notification
+                showAlert('Produit ajouté au panier !', 'success');
+            },
+            error: function() {
+                button.prop('disabled', false);
+                button.html('<i class="fas fa-cart-plus me-1"></i> Ajouter');
+                showAlert('Erreur lors de l\'ajout au panier', 'danger');
+            }
+        });
+    });
+    
+    function showAlert(message, type) {
+        var alertHtml = `
+            <div class="alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3" 
+                 role="alert" style="z-index: 9999;">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        $('body').append(alertHtml);
+        
+        setTimeout(function() {
+            $('.alert').alert('close');
+        }, 3000);
+    }
+});
+</script>
+{% endblock %}

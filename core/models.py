@@ -97,6 +97,22 @@ class Product(models.Model):
     def has_discount(self):
         """Vérifie si le produit a une réduction"""
         return self.discount_price is not None
+    
+    # Dans models.py, dans la classe Product
+    @property
+    def discount_percentage(self):
+        """Calcule le pourcentage de réduction"""
+        if self.discount_price and self.price:
+            discount = ((self.price - self.discount_price) / self.price) * 100
+            return round(discount, 0)
+        return 0
+
+    @property
+    def is_new(self):
+        """Vérifie si le produit est nouveau (moins de 7 jours)"""
+        from django.utils import timezone
+        from datetime import timedelta
+        return self.created_at > timezone.now() - timedelta(days=7)
 
 class ProductImage(models.Model):
     """Modèle pour les images supplémentaires des produits"""
