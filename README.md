@@ -21,7 +21,7 @@ Nexus Shop est une plateforme e-commerce moderne développée avec Django, offra
 ### 🔧 Technologies utilisées
 - **Backend** : Django 5.2.8, Python 3.13
 - **Frontend** : HTML5, CSS3, JavaScript, Bootstrap 5.3
-- **Base de données** : SQLite (dev) / PostgreSQL (prod)
+- **Base de données** : PostgreSQL (dev)
 - **Authentification** : Django Auth avec modèle personnalisé
 - **Media** : Django Storage pour les images produits
 - **Développement** : Git, Virtualenv, pip
